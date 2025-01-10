@@ -1,0 +1,91 @@
+{
+  "routes": [
+    {
+      "id": "route1",
+      "vehicle_id": "v001",
+      "vehicle_type": "truck",
+      "color": "#FF0000",
+      "path": [
+        {
+          "name": "서울시청",
+          "location_id": "loc001",
+          "lat": 37.5665,
+          "lng": 126.978,
+          "is_warehouse": true
+        },
+        {
+          "name": "종로구 주민센터",
+          "location_id": "loc002",
+          "lat": 37.5728,
+          "lng": 126.9793,
+          "is_customer": true
+        },
+        {
+          "name": "중구 주민센터",
+          "location_id": "loc003",
+          "lat": 37.5636,
+          "lng": 126.9976,
+          "is_customer": true
+        }
+      ]
+    },
+    {
+      "id": "route2",
+      "vehicle_id": "v002",
+      "vehicle_type": "walk",
+      "color": "#0000FF",
+      "path": [
+        {
+          "name": "서울시청",
+          "location_id": "loc001",
+          "lat": 37.5665,
+          "lng": 126.978,
+          "is_warehouse": true
+        },
+        {
+          "name": "용산구 주민센터",
+          "location_id": "loc004",
+          "lat": 37.5323,
+          "lng": 126.9903,
+          "is_customer": true
+        },
+        {
+          "name": "성동구 주민센터",
+          "location_id": "loc005",
+          "lat": 37.5633,
+          "lng": 127.0366,
+          "is_customer": true
+        }
+      ]
+    },
+    {
+      "id": "route3",
+      "vehicle_id": "v003",
+      "vehicle_type": "bike",
+      "color": "#008000",
+      "path": [
+        {
+          "name": "서울시청",
+          "location_id": "loc001",
+          "lat": 37.5665,
+          "lng": 126.978,
+          "is_warehouse": true
+        },
+        {
+          "name": "강남구 주민센터",
+          "location_id": "loc006",
+          "lat": 37.5172,
+          "lng": 127.0473,
+          "is_customer": true
+        },
+        {
+          "name": "서초구 주민센터",
+          "location_id": "loc007",
+          "lat": 37.4836,
+          "lng": 127.0327,
+          "is_customer": true
+        }
+      ]
+    }
+  ]
+}
