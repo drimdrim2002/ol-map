@@ -80,7 +80,7 @@ export default {
       this.popup = new Overlay({
         element: this.$refs.popupRef,
         positioning: "bottom-center",
-        stopEvent: false,
+        stopEvent: true,
         offset: [0, -10],
       });
 
@@ -88,9 +88,52 @@ export default {
       this.popupCloser = this.$refs.popupCloserRef;
       this.popupContent = this.$refs.popupContentRef;
 
+      // 팝업 드래그 기능 추가
+      let isDragging = false;
+      let startPosition = null;
+
+      const onMouseDown = (e) => {
+        if (e.target.closest(".popup-header")) {
+          isDragging = true;
+          this.$refs.popupRef.style.position = "absolute";
+          startPosition = {
+            x: e.clientX - this.$refs.popupRef.offsetLeft,
+            y: e.clientY - this.$refs.popupRef.offsetTop,
+          };
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+
+      const onMouseMove = (e) => {
+        if (isDragging) {
+          this.$refs.popupRef.style.left = `${e.clientX - startPosition.x}px`;
+          this.$refs.popupRef.style.top = `${e.clientY - startPosition.y}px`;
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+
+      const onMouseUp = () => {
+        isDragging = false;
+      };
+
+      // 이벤트 리스너 등록
+      this.$refs.popupRef.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+
+      // 컴포넌트가 제거될 때 이벤트 리스너 제거
+      this.$once("hook:beforeDestroy", () => {
+        this.$refs.popupRef.removeEventListener("mousedown", onMouseDown);
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      });
+
       this.popupCloser.onclick = () => {
         this.popup.setPosition(undefined);
         this.popupCloser.blur();
+        this.removeHighlight();
         return false;
       };
 
@@ -101,6 +144,8 @@ export default {
         );
 
         if (feature && feature.get("point")) {
+          this.removeHighlight();
+
           const point = feature.get("point");
           const currentRoute = feature.get("route");
           const coordinates = feature.getGeometry().getCoordinates();
@@ -112,11 +157,24 @@ export default {
 
           let content = `
             <div class="popup-content">
-              <h4>${point.name}</h4>
+              <div class="popup-header">
+                <h4>${point.name}</h4>
+                <div class="drag-handle">⋮⋮</div>
+              </div>
               <p>위치 ID: ${point.location_id}</p>
               <p>유형: ${point.is_warehouse ? "창고" : "고객"}</p>
               <p>좌표: ${point.lat}, ${point.lng}</p>
               ${routeOptions}
+              ${
+                !point.is_warehouse
+                  ? `
+                <div class="popup-actions">
+                  <button class="confirm-btn" style="display: none;">확인</button>
+                  <button class="cancel-btn" style="display: none;">취소</button>
+                </div>
+              `
+                  : ""
+              }
             </div>
           `;
 
@@ -125,30 +183,65 @@ export default {
 
           // 경로 변경 이벤트 리스너 추가
           if (!point.is_warehouse) {
-            const routeOptions =
-              this.popupContent.querySelectorAll(".route-option");
-            routeOptions.forEach((option) => {
-              // 마우스 오버 시 경로 하이라이트
-              option.addEventListener("mouseenter", () => {
-                const routeId = option.dataset.routeId;
-                this.highlightRoute(routeId);
-              });
+            const routeSelect =
+              this.popupContent.querySelector(".route-select");
+            const confirmBtn = this.popupContent.querySelector(".confirm-btn");
+            const cancelBtn = this.popupContent.querySelector(".cancel-btn");
+            let selectedRouteId = null;
 
-              // 마우스 아웃 시 하이라이트 제거
-              option.addEventListener("mouseleave", () => {
+            // 드롭다운 변경 시 경로 하이라이트 및 버튼 표시
+            routeSelect.addEventListener("change", (e) => {
+              selectedRouteId = e.target.value;
+              if (selectedRouteId && selectedRouteId !== currentRoute.id) {
+                this.highlightRoute(selectedRouteId);
+                confirmBtn.style.display = "inline-block";
+                cancelBtn.style.display = "inline-block";
+              }
+            });
+
+            // 확인 버튼 클릭
+            confirmBtn.addEventListener("click", () => {
+              if (selectedRouteId && selectedRouteId !== currentRoute.id) {
+                this.changePointRoute(point, currentRoute, selectedRouteId);
+                this.popup.setPosition(undefined);
                 this.removeHighlight();
-              });
+              }
+            });
 
-              // 클릭 시 경로 변경
-              option.addEventListener("click", () => {
-                const newRouteId = option.dataset.routeId;
-                if (newRouteId && newRouteId !== currentRoute.id) {
-                  this.changePointRoute(point, currentRoute, newRouteId);
-                  this.popup.setPosition(undefined);
-                }
-              });
+            // 취소 버튼 클릭
+            cancelBtn.addEventListener("click", () => {
+              routeSelect.value = "";
+              this.removeHighlight();
+              confirmBtn.style.display = "none";
+              cancelBtn.style.display = "none";
+            });
+
+            // 옵션에 마우스 오버 시 경로 하이라이트
+            routeSelect.addEventListener("mouseover", (e) => {
+              const option = e.target;
+              if (
+                option.tagName === "OPTION" &&
+                option.value &&
+                option.value !== ""
+              ) {
+                this.highlightRoute(option.value);
+              }
+            });
+
+            // 옵션에서 마우스 아웃 시 하이라이트 제거
+            routeSelect.addEventListener("mouseout", (e) => {
+              const option = e.target;
+              if (
+                option.tagName === "OPTION" &&
+                (!selectedRouteId || option.value !== selectedRouteId)
+              ) {
+                this.removeHighlight();
+              }
             });
           }
+        } else {
+          this.popup.setPosition(undefined);
+          this.removeHighlight();
         }
       });
     },
@@ -159,12 +252,9 @@ export default {
         .filter((route) => route.id !== currentRoute.id)
         .map(
           (route) => `
-          <div class="route-option" data-route-id="${route.id}">
-            <div class="route-color" style="background-color: ${route.color}"></div>
-            <div class="route-info">
-              ${route.vehicle_id} (${route.vehicle_type})
-            </div>
-          </div>
+          <option value="${route.id}" style="background-color: ${route.color}; color: white;">
+            ${route.vehicle_id} (${route.vehicle_type})
+          </option>
         `
         )
         .join("");
@@ -172,15 +262,18 @@ export default {
       return `
         <div class="route-change">
           <p>경로 변경:</p>
-          <div class="route-options">
+          <select class="route-select">
+            <option value="" selected disabled>경로 선택</option>
             ${options}
-          </div>
+          </select>
         </div>
       `;
     },
 
     // 경로 하이라이트 애니메이션
     highlightRoute(routeId) {
+      console.log("animation invoke:", routeId);
+
       // 모든 경로 스타일 초기화
       this.routeLayers.forEach((layer) => {
         const routeFeature = layer.getSource().getFeatures()[0];
@@ -196,21 +289,20 @@ export default {
 
       if (routeLayer) {
         const routeFeature = routeLayer.getSource().getFeatures()[0];
-        const highlightStyle = new Style({
-          stroke: new Stroke({
-            color: routeFeature.get("route").color,
-            width: 6,
-            opacity: 0.8,
-            lineDash: [10, 10],
-            lineDashOffset: 0,
-          }),
-        });
+        const route = routeFeature.get("route");
 
         const animate = () => {
           if (!routeFeature.get("animating")) return;
 
-          const offset = (performance.now() / 50) % 20;
-          highlightStyle.getStroke().setLineDashOffset(offset);
+          const highlightStyle = new Style({
+            stroke: new Stroke({
+              color: route.color,
+              width: 6 + Math.sin(performance.now() / 200) * 2,
+              lineDash: [10, 10],
+              lineDashOffset: (performance.now() / 50) % 20,
+            }),
+          });
+
           routeFeature.setStyle(highlightStyle);
           requestAnimationFrame(animate);
         };
@@ -380,13 +472,87 @@ export default {
 .ol-popup {
   position: absolute;
   background-color: white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  padding: 15px;
-  border-radius: 10px;
-  border: 1px solid #cccccc;
-  bottom: 12px;
-  left: -50px;
-  min-width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  min-width: 220px;
+  user-select: none;
+  z-index: 1000;
+  font-size: 12px;
+}
+
+.popup-content {
+  padding: 10px;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+  background-color: #f5f5f5;
+  border-radius: 8px 8px 0 0;
+  padding: 8px 12px;
+  margin: 0;
+  border-bottom: 1px solid #ddd;
+  touch-action: none;
+}
+
+.popup-header:hover {
+  background-color: #eee;
+}
+
+.popup-header h4 {
+  margin: 0;
+  flex: 1;
+  pointer-events: none;
+  font-size: 14px;
+}
+
+.drag-handle {
+  color: #666;
+  cursor: move;
+  user-select: none;
+  padding: 0 5px;
+  pointer-events: none;
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.popup-actions button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.confirm-btn {
+  background-color: #4caf50;
+  color: white;
+  border-color: #4caf50 !important;
+}
+
+.confirm-btn:hover {
+  background-color: #45a049;
+}
+
+.cancel-btn {
+  background-color: white;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background-color: #f5f5f5;
 }
 
 .ol-popup:after,
@@ -419,15 +585,10 @@ export default {
   position: absolute;
   top: 2px;
   right: 8px;
-  font-size: 16px;
 }
 
 .ol-popup-closer:after {
   content: "✖";
-}
-
-.popup-content {
-  font-size: 14px;
 }
 
 .popup-content h4 {
@@ -436,89 +597,67 @@ export default {
 }
 
 .popup-content p {
-  margin: 5px 0;
+  margin: 3px 0;
   color: #666;
+  font-size: 12px;
 }
 
 .route-change {
   margin-top: 15px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
 }
 
 .route-change p {
-  margin-bottom: 8px;
+  margin-bottom: 3px;
   font-weight: bold;
-  color: #333;
+  font-size: 12px;
 }
 
 .route-select {
   width: 100%;
-  padding: 8px;
+  padding: 6px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
-  font-size: 14px;
-  color: #333;
+  font-size: 12px;
   cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.route-select:hover {
+  border-color: #999;
 }
 
 .route-select:focus {
-  outline: none;
-  border-color: #4285f4;
+  border-color: #666;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
 }
 
 .route-select option {
-  padding: 8px;
-  font-size: 14px;
-  background-color: white;
+  padding: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.route-select option:first-child {
+  background-color: white !important;
+  color: #666;
+}
+
+.route-select option:not(:first-child) {
+  color: white;
 }
 
 .route-select option:hover {
-  background-color: #f5f5f5;
+  filter: brightness(90%);
 }
 
 .route-select option:checked {
-  background-color: #e8f0fe;
-  color: #1a73e8;
+  filter: brightness(85%);
 }
 
-.route-options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.route-option {
-  display: flex;
-  align-items: center;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: white;
-}
-
-.route-option:hover {
-  background-color: #f5f5f5;
-  border-color: #4285f4;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.route-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  margin-right: 10px;
-  border: 2px solid #fff;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
-}
-
-.route-info {
-  flex: 1;
-  color: #333;
-  font-size: 14px;
+.route-select:focus option:hover {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 </style>
