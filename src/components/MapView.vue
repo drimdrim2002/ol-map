@@ -79,6 +79,7 @@ export default {
       let isDragging = false;
       let draggedFeature = null;
       let hoveredRoute = null;
+      let dragStartPosition = null;
 
       this.map.on("pointermove", (evt) => {
         if (isDragging && draggedFeature) {
@@ -139,6 +140,7 @@ export default {
         ) {
           isDragging = true;
           draggedFeature = feature;
+          dragStartPosition = feature.getGeometry().getCoordinates();
           evt.preventDefault();
           evt.stopPropagation();
           this.map.getTargetElement().style.cursor = "grabbing";
@@ -147,23 +149,53 @@ export default {
       });
 
       this.map.on("pointerup", () => {
-        if (isDragging && draggedFeature && hoveredRoute) {
-          const point = draggedFeature.get("point");
-          const currentRoute = draggedFeature.get("route");
-          const newRoute = hoveredRoute.get("route");
-
-          if (newRoute.id !== currentRoute.id) {
-            this.changePointRoute(point, currentRoute, newRoute.id);
-          }
-
+        if (isDragging && draggedFeature) {
           if (hoveredRoute) {
+            const point = draggedFeature.get("point");
+            const currentRoute = draggedFeature.get("route");
+            const newRoute = hoveredRoute.get("route");
+
+            if (newRoute.id !== currentRoute.id) {
+              // Remove point from current route
+              const oldRouteIndex = this.routes.findIndex(
+                (r) => r.id === currentRoute.id
+              );
+              if (oldRouteIndex !== -1) {
+                const pointIndex = this.routes[oldRouteIndex].path.findIndex(
+                  (p) => p.location_id === point.location_id
+                );
+                if (pointIndex !== -1) {
+                  this.routes[oldRouteIndex].path.splice(pointIndex, 1);
+                }
+              }
+
+              // Add point to the end of new route
+              const newRouteIndex = this.routes.findIndex(
+                (r) => r.id === newRoute.id
+              );
+              if (newRouteIndex !== -1) {
+                this.routes[newRouteIndex].path.push(point);
+              }
+
+              // Emit updated routes
+              const updatedRoutes = [...this.routes];
+              this.$emit("update:routes", updatedRoutes);
+            } else {
+              // If not dropped on a new route, return to original position
+              draggedFeature.getGeometry().setCoordinates(dragStartPosition);
+            }
+
             hoveredRoute.setStyle(hoveredRoute.get("normalStyle"));
             hoveredRoute = null;
+          } else {
+            // If not dropped on any route, return to original position
+            draggedFeature.getGeometry().setCoordinates(dragStartPosition);
           }
         }
 
         isDragging = false;
         draggedFeature = null;
+        dragStartPosition = null;
         this.map.getTargetElement().style.cursor = "";
         return false;
       });
