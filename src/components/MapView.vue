@@ -71,86 +71,35 @@ export default {
           }),
         ],
         view: new View({
-          center: fromLonLat([126.978, 37.5665]), // 서울시청 중심
+          center: fromLonLat([126.978, 37.5665]),
           zoom: 12,
         }),
       });
-    },
-    initPopup() {
-      this.popup = new Overlay({
-        element: this.$refs.popupRef,
-        positioning: "bottom-center",
-        stopEvent: true,
-        offset: [0, -10],
-      });
 
-      this.map.addOverlay(this.popup);
-      this.popupCloser = this.$refs.popupCloserRef;
-      this.popupContent = this.$refs.popupContentRef;
+      let currentAnimatingFeature = null;
 
-      // 팝업 드래그 기능 추가
-      let isDragging = false;
-      let startPosition = null;
+      this.map.getViewport().addEventListener("contextmenu", (evt) => {
+        evt.preventDefault();
 
-      const onMouseDown = (e) => {
-        if (e.target.closest(".popup-header")) {
-          isDragging = true;
-          this.$refs.popupRef.style.position = "absolute";
-          startPosition = {
-            x: e.clientX - this.$refs.popupRef.offsetLeft,
-            y: e.clientY - this.$refs.popupRef.offsetTop,
-          };
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      };
-
-      const onMouseMove = (e) => {
-        if (isDragging) {
-          this.$refs.popupRef.style.left = `${e.clientX - startPosition.x}px`;
-          this.$refs.popupRef.style.top = `${e.clientY - startPosition.y}px`;
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      };
-
-      const onMouseUp = () => {
-        isDragging = false;
-      };
-
-      // 이벤트 리스너 등록
-      this.$refs.popupRef.addEventListener("mousedown", onMouseDown);
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-
-      // 컴포넌트가 제거될 때 이벤트 리스너 제거
-      this.$once("hook:beforeDestroy", () => {
-        this.$refs.popupRef.removeEventListener("mousedown", onMouseDown);
-        document.removeEventListener("mousemove", onMouseMove);
-        document.removeEventListener("mouseup", onMouseUp);
-      });
-
-      this.popupCloser.onclick = () => {
-        this.popup.setPosition(undefined);
-        this.popupCloser.blur();
-        this.removeHighlight();
-        return false;
-      };
-
-      this.map.on("click", (evt) => {
+        const pixel = this.map.getEventPixel(evt);
         const feature = this.map.forEachFeatureAtPixel(
-          evt.pixel,
+          pixel,
           (feature) => feature
         );
 
+        if (currentAnimatingFeature) {
+          this.stopMarkerAnimation(currentAnimatingFeature);
+        }
+
         if (feature && feature.get("point")) {
           this.removeHighlight();
+          currentAnimatingFeature = feature;
+          this.animateMarker(feature);
 
           const point = feature.get("point");
           const currentRoute = feature.get("route");
           const coordinates = feature.getGeometry().getCoordinates();
 
-          // 창고가 아닌 경우에만 경로 변경 옵션 표시
           const routeOptions = point.is_warehouse
             ? ""
             : this.getRouteOptionsHtml(currentRoute);
@@ -181,7 +130,6 @@ export default {
           this.popupContent.innerHTML = content;
           this.popup.setPosition(coordinates);
 
-          // 경로 변경 이벤트 리스너 추가
           if (!point.is_warehouse) {
             const routeSelect =
               this.popupContent.querySelector(".route-select");
@@ -189,7 +137,6 @@ export default {
             const cancelBtn = this.popupContent.querySelector(".cancel-btn");
             let selectedRouteId = null;
 
-            // 드롭다운 변경 시 경로 하이라이트 및 버튼 표시
             routeSelect.addEventListener("change", (e) => {
               selectedRouteId = e.target.value;
               if (selectedRouteId && selectedRouteId !== currentRoute.id) {
@@ -199,7 +146,6 @@ export default {
               }
             });
 
-            // 확인 버튼 클릭
             confirmBtn.addEventListener("click", () => {
               if (selectedRouteId && selectedRouteId !== currentRoute.id) {
                 this.changePointRoute(point, currentRoute, selectedRouteId);
@@ -208,7 +154,6 @@ export default {
               }
             });
 
-            // 취소 버튼 클릭
             cancelBtn.addEventListener("click", () => {
               routeSelect.value = "";
               this.removeHighlight();
@@ -216,7 +161,6 @@ export default {
               cancelBtn.style.display = "none";
             });
 
-            // 옵션에 마우스 오버 시 경로 하이라이트
             routeSelect.addEventListener("mouseover", (e) => {
               const option = e.target;
               if (
@@ -228,7 +172,6 @@ export default {
               }
             });
 
-            // 옵션에서 마우스 아웃 시 하이라이트 제거
             routeSelect.addEventListener("mouseout", (e) => {
               const option = e.target;
               if (
@@ -244,9 +187,84 @@ export default {
           this.removeHighlight();
         }
       });
+
+      this.map.on("click", () => {
+        if (currentAnimatingFeature) {
+          this.stopMarkerAnimation(currentAnimatingFeature);
+          currentAnimatingFeature = null;
+        }
+        this.popup.setPosition(undefined);
+        this.removeHighlight();
+      });
+    },
+    initPopup() {
+      this.popup = new Overlay({
+        element: this.$refs.popupRef,
+        positioning: "bottom-center",
+        stopEvent: true,
+        offset: [0, -10],
+      });
+
+      this.map.addOverlay(this.popup);
+      this.popupCloser = this.$refs.popupCloserRef;
+      this.popupContent = this.$refs.popupContentRef;
+
+      let isDragging = false;
+      let startPosition = null;
+
+      const onMouseDown = (e) => {
+        if (e.target.closest(".popup-header")) {
+          isDragging = true;
+          this.$refs.popupRef.style.position = "absolute";
+          startPosition = {
+            x: e.clientX - this.$refs.popupRef.offsetLeft,
+            y: e.clientY - this.$refs.popupRef.offsetTop,
+          };
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+
+      const onMouseMove = (e) => {
+        if (isDragging) {
+          this.$refs.popupRef.style.left = `${e.clientX - startPosition.x}px`;
+          this.$refs.popupRef.style.top = `${e.clientY - startPosition.y}px`;
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+
+      const onMouseUp = () => {
+        isDragging = false;
+      };
+
+      this.$refs.popupRef.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+
+      this.$once("hook:beforeDestroy", () => {
+        this.$refs.popupRef.removeEventListener("mousedown", onMouseDown);
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      });
+
+      this.popupCloser.onclick = () => {
+        const features = this.markerLayers.flatMap((layer) =>
+          layer
+            .getSource()
+            .getFeatures()
+            .filter((f) => f.get("animating"))
+        );
+
+        features.forEach((feature) => this.stopMarkerAnimation(feature));
+
+        this.popup.setPosition(undefined);
+        this.popupCloser.blur();
+        this.removeHighlight();
+        return false;
+      };
     },
 
-    // 경로 옵션 HTML 생성
     getRouteOptionsHtml(currentRoute) {
       const options = this.routes
         .filter((route) => route.id !== currentRoute.id)
@@ -270,18 +288,15 @@ export default {
       `;
     },
 
-    // 경로 하이라이트 애니메이션
     highlightRoute(routeId) {
       console.log("animation invoke:", routeId);
 
-      // 모든 경로 스타일 초기화
       this.routeLayers.forEach((layer) => {
         const routeFeature = layer.getSource().getFeatures()[0];
         routeFeature.setStyle(routeFeature.get("normalStyle"));
         routeFeature.set("animating", false);
       });
 
-      // 선택된 경로 하이라이트
       const routeLayer = this.routeLayers.find(
         (layer) =>
           layer.getSource().getFeatures()[0].get("route").id === routeId
@@ -312,7 +327,6 @@ export default {
       }
     },
 
-    // 경로 하이라이트 제거
     removeHighlight() {
       this.routeLayers.forEach((layer) => {
         const routeFeature = layer.getSource().getFeatures()[0];
@@ -321,9 +335,7 @@ export default {
       });
     },
 
-    // 포인트의 경로 변경
     changePointRoute(point, oldRoute, newRouteId) {
-      // 기존 경로에서 포인트 제거
       const oldRouteIndex = this.routes.findIndex((r) => r.id === oldRoute.id);
       if (oldRouteIndex !== -1) {
         const pointIndex = this.routes[oldRouteIndex].path.findIndex(
@@ -334,7 +346,6 @@ export default {
         }
       }
 
-      // 새 경로에 포인트 추가
       const newRoute = this.routes.find((r) => r.id === newRouteId);
       if (newRoute) {
         newRoute.path.push({
@@ -343,7 +354,6 @@ export default {
           lng: point.lng,
         });
 
-        // 경로 업데이트
         const updatedRoutes = [...this.routes];
         this.$emit("update:routes", updatedRoutes);
       }
@@ -354,7 +364,6 @@ export default {
       this.routeLayers = [];
       this.markerLayers = [];
 
-      // 각 경로에 대해 레이어 생성
       this.routes.forEach((route) => {
         this.createRouteLayer(route);
         this.createMarkerLayer(route);
@@ -403,6 +412,72 @@ export default {
       this.map.addLayer(vectorLayer);
       this.routeLayers.push(vectorLayer);
     },
+    createMarkerStyle(point, route, index, isHighlighted = false) {
+      return new Style({
+        image: new Circle({
+          radius:
+            15 * (isHighlighted ? this.markerScale * 1.2 : this.markerScale),
+          fill: new Fill({
+            color: point.is_warehouse ? "#000000" : route.color,
+          }),
+          stroke: new Stroke({
+            color: "#ffffff",
+            width: isHighlighted ? 4 : 3,
+          }),
+        }),
+        text: new Text({
+          text: `${index + 1}`,
+          fill: new Fill({
+            color: "#ffffff",
+          }),
+          font: `bold ${
+            14 * (isHighlighted ? this.markerScale * 1.2 : this.markerScale)
+          }px Arial`,
+          textAlign: "center",
+          textBaseline: "middle",
+        }),
+      });
+    },
+    animateMarker(feature) {
+      if (!feature) return;
+
+      const point = feature.get("point");
+      const route = feature.get("route");
+      const index = feature.get("index");
+      let scale = 1;
+      let increasing = true;
+
+      const animate = () => {
+        if (!feature.get("animating")) return;
+
+        if (increasing) {
+          scale += 0.03;
+          if (scale >= 1.2) increasing = false;
+        } else {
+          scale -= 0.03;
+          if (scale <= 1) increasing = true;
+        }
+
+        const style = this.createMarkerStyle(point, route, index, true);
+        style.getImage().setScale(scale);
+        feature.setStyle(style);
+
+        requestAnimationFrame(animate);
+      };
+
+      feature.set("animating", true);
+      animate();
+    },
+    stopMarkerAnimation(feature) {
+      if (!feature) return;
+
+      feature.set("animating", false);
+      const point = feature.get("point");
+      const route = feature.get("route");
+      const index = feature.get("index");
+
+      feature.setStyle(this.createMarkerStyle(point, route, index));
+    },
     createMarkerLayer(route) {
       const features = route.path.map((point, index) => {
         const feature = new Feature({
@@ -412,29 +487,7 @@ export default {
           index: index,
         });
 
-        const style = new Style({
-          image: new Circle({
-            radius: 15 * this.markerScale,
-            fill: new Fill({
-              color: point.is_warehouse ? "#000000" : route.color,
-            }),
-            stroke: new Stroke({
-              color: "#ffffff",
-              width: 3,
-            }),
-          }),
-          text: new Text({
-            text: `${index + 1}`,
-            fill: new Fill({
-              color: "#ffffff",
-            }),
-            font: `bold ${14 * this.markerScale}px Arial`,
-            textAlign: "center",
-            textBaseline: "middle",
-          }),
-        });
-
-        feature.setStyle(style);
+        feature.setStyle(this.createMarkerStyle(point, route, index));
         return feature;
       });
 
