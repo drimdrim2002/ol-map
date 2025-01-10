@@ -424,18 +424,13 @@ export default {
             }),
           }),
           text: new Text({
-            text: point.name,
+            text: `${index + 1}`,
             fill: new Fill({
-              color: "#000000",
-            }),
-            stroke: new Stroke({
               color: "#ffffff",
-              width: 3,
             }),
-            font: `${12 * this.markerScale}px Arial`,
-            offsetY: -20,
+            font: `bold ${14 * this.markerScale}px Arial`,
             textAlign: "center",
-            textBaseline: "bottom",
+            textBaseline: "middle",
           }),
         });
 
