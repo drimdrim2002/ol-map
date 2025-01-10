@@ -76,7 +76,97 @@ export default {
         }),
       });
 
-      let currentAnimatingFeature = null;
+      let isDragging = false;
+      let draggedFeature = null;
+      let hoveredRoute = null;
+
+      this.map.on("pointermove", (evt) => {
+        if (isDragging && draggedFeature) {
+          evt.preventDefault();
+          draggedFeature.getGeometry().setCoordinates(evt.coordinate);
+
+          // Check if dragged marker is over any route
+          const routeFeatures = this.routeLayers.map(
+            (layer) => layer.getSource().getFeatures()[0]
+          );
+          let closestRoute = null;
+          let minDistance = Infinity;
+
+          const currentRoute = draggedFeature.get("route");
+
+          routeFeatures.forEach((routeFeature) => {
+            // Skip if it's the current route
+            if (routeFeature.get("route").id === currentRoute.id) {
+              return;
+            }
+
+            const lineString = routeFeature.getGeometry();
+            const closestPoint = lineString.getClosestPoint(evt.coordinate);
+            const distance = Math.sqrt(
+              Math.pow(closestPoint[0] - evt.coordinate[0], 2) +
+                Math.pow(closestPoint[1] - evt.coordinate[1], 2)
+            );
+
+            if (distance < minDistance && distance < 20) {
+              minDistance = distance;
+              closestRoute = routeFeature;
+            }
+          });
+
+          // Highlight the closest route
+          if (closestRoute !== hoveredRoute) {
+            if (hoveredRoute) {
+              hoveredRoute.setStyle(hoveredRoute.get("normalStyle"));
+            }
+            if (closestRoute) {
+              closestRoute.setStyle(closestRoute.get("highlightStyle"));
+            }
+            hoveredRoute = closestRoute;
+          }
+        }
+        return false;
+      });
+
+      this.map.on("pointerdown", (evt) => {
+        const feature = this.map.forEachFeatureAtPixel(
+          evt.pixel,
+          (feature) => feature
+        );
+        if (
+          feature &&
+          feature.get("point") &&
+          !feature.get("point").is_warehouse
+        ) {
+          isDragging = true;
+          draggedFeature = feature;
+          evt.preventDefault();
+          evt.stopPropagation();
+          this.map.getTargetElement().style.cursor = "grabbing";
+        }
+        return false;
+      });
+
+      this.map.on("pointerup", () => {
+        if (isDragging && draggedFeature && hoveredRoute) {
+          const point = draggedFeature.get("point");
+          const currentRoute = draggedFeature.get("route");
+          const newRoute = hoveredRoute.get("route");
+
+          if (newRoute.id !== currentRoute.id) {
+            this.changePointRoute(point, currentRoute, newRoute.id);
+          }
+
+          if (hoveredRoute) {
+            hoveredRoute.setStyle(hoveredRoute.get("normalStyle"));
+            hoveredRoute = null;
+          }
+        }
+
+        isDragging = false;
+        draggedFeature = null;
+        this.map.getTargetElement().style.cursor = "";
+        return false;
+      });
 
       this.map.getViewport().addEventListener("contextmenu", (evt) => {
         evt.preventDefault();
@@ -87,13 +177,8 @@ export default {
           (feature) => feature
         );
 
-        if (currentAnimatingFeature) {
-          this.stopMarkerAnimation(currentAnimatingFeature);
-        }
-
         if (feature && feature.get("point")) {
           this.removeHighlight();
-          currentAnimatingFeature = feature;
           this.animateMarker(feature);
 
           const point = feature.get("point");
@@ -189,10 +274,15 @@ export default {
       });
 
       this.map.on("click", () => {
-        if (currentAnimatingFeature) {
-          this.stopMarkerAnimation(currentAnimatingFeature);
-          currentAnimatingFeature = null;
-        }
+        const features = this.markerLayers.flatMap((layer) =>
+          layer
+            .getSource()
+            .getFeatures()
+            .filter((f) => f.get("animating"))
+        );
+
+        features.forEach((feature) => this.stopMarkerAnimation(feature));
+
         this.popup.setPosition(undefined);
         this.removeHighlight();
       });
