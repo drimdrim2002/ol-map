@@ -84,6 +84,7 @@ export default {
       this.map.on("pointermove", (evt) => {
         if (isDragging && draggedFeature) {
           evt.preventDefault();
+          evt.stopPropagation();
           draggedFeature.getGeometry().setCoordinates(evt.coordinate);
 
           // Check if dragged marker is over any route
@@ -125,14 +126,17 @@ export default {
             hoveredRoute = closestRoute;
           }
         }
-        return false;
       });
 
       this.map.on("pointerdown", (evt) => {
         const feature = this.map.forEachFeatureAtPixel(
           evt.pixel,
-          (feature) => feature
+          (feature) => feature,
+          {
+            hitTolerance: 5,
+          }
         );
+
         if (
           feature &&
           feature.get("point") &&
@@ -145,7 +149,6 @@ export default {
           evt.stopPropagation();
           this.map.getTargetElement().style.cursor = "grabbing";
         }
-        return false;
       });
 
       this.map.on("pointerup", () => {
@@ -197,7 +200,6 @@ export default {
         draggedFeature = null;
         dragStartPosition = null;
         this.map.getTargetElement().style.cursor = "";
-        return false;
       });
 
       this.map.getViewport().addEventListener("contextmenu", (evt) => {
