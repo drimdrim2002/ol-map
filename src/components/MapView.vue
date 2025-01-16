@@ -21,6 +21,7 @@ import { Feature } from "ol";
 import { LineString, Point } from "ol/geom";
 import { Style, Stroke, Circle, Fill, Text } from "ol/style";
 import Overlay from "ol/Overlay";
+import { getRouteColor, adjustBrightness } from "../utils/colors";
 
 export default {
   name: "MapView",
@@ -394,7 +395,9 @@ export default {
         .filter((route) => route.id !== currentRoute.id)
         .map(
           (route) => `
-          <option value="${route.id}" style="background-color: ${route.color}; color: white;">
+          <option value="${route.id}" style="background-color: ${
+            route.color || getRouteColor(parseInt(route.id) - 1)
+          };">
             ${route.vehicle_id} (${route.vehicle_type})
           </option>
         `
@@ -503,9 +506,11 @@ export default {
         route: route,
       });
 
+      const routeColor = route.color || getRouteColor(parseInt(route.id) - 1);
+
       const routeStyle = new Style({
         stroke: new Stroke({
-          color: route.color,
+          color: routeColor,
           width: 4,
           opacity: 1,
         }),
@@ -513,7 +518,7 @@ export default {
 
       const highlightStyle = new Style({
         stroke: new Stroke({
-          color: route.color,
+          color: adjustBrightness(routeColor, 1.2),
           width: 6,
           opacity: 0.8,
           lineDash: [10, 10],
@@ -537,12 +542,14 @@ export default {
       this.routeLayers.push(vectorLayer);
     },
     createMarkerStyle(point, route, index, isHighlighted = false) {
+      const markerColor = route.color || getRouteColor(parseInt(route.id) - 1);
+
       return new Style({
         image: new Circle({
           radius:
             15 * (isHighlighted ? this.markerScale * 1.2 : this.markerScale),
           fill: new Fill({
-            color: point.is_warehouse ? "#000000" : route.color,
+            color: point.is_warehouse ? "#000000" : markerColor,
           }),
           stroke: new Stroke({
             color: "#ffffff",
@@ -806,19 +813,25 @@ export default {
 }
 
 .route-select option {
-  padding: 6px;
+  padding: 8px;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
+  color: white;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  background-color: inherit;
 }
 
 .route-select option:first-child {
   background-color: white !important;
   color: #666;
+  text-shadow: none;
 }
 
 .route-select option:not(:first-child) {
   color: white;
+  padding: 10px;
+  font-weight: 500;
 }
 
 .route-select option:hover {
@@ -831,5 +844,42 @@ export default {
 
 .route-select:focus option:hover {
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 브라우저별 스타일 조정 */
+/* Chrome/Safari */
+.route-select::-webkit-scrollbar {
+  width: 8px;
+}
+
+.route-select::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.route-select::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.route-select::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Firefox */
+.route-select {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+/* Edge */
+.route-select option {
+  background-color: var(--option-background-color);
+}
+
+@supports (-ms-ime-align: auto) {
+  .route-select option {
+    background-color: var(--option-background-color) !important;
+  }
 }
 </style>
