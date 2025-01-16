@@ -432,13 +432,14 @@ export default {
       if (routeLayer) {
         const routeFeature = routeLayer.getSource().getFeatures()[0];
         const route = routeFeature.get("route");
+        const routeColor = route.color || getRouteColor(parseInt(route.id) - 1);
 
         const animate = () => {
           if (!routeFeature.get("animating")) return;
 
           const highlightStyle = new Style({
             stroke: new Stroke({
-              color: route.color,
+              color: routeColor,
               width: 6 + Math.sin(performance.now() / 200) * 2,
               lineDash: [10, 10],
               lineDashOffset: (performance.now() / 50) % 20,
