@@ -224,26 +224,55 @@ export default {
             ? ""
             : this.getRouteOptionsHtml(currentRoute);
 
+          const headerColor =
+            currentRoute.color || getRouteColor(parseInt(currentRoute.id) - 1);
+
           let content = `
             <div class="popup-content">
-              <div class="popup-header">
-                <h4>${point.name}</h4>
-                <div class="drag-handle">⋮⋮</div>
+              <div class="popup-header" style="border-bottom: 3px solid ${headerColor}; background-color: ${headerColor}20;">
+                <span class="header-text" style="color: ${headerColor};">${
+            currentRoute.vehicle_id
+          }</span>
               </div>
-              <p>위치 ID: ${point.location_id}</p>
-              <p>유형: ${point.is_warehouse ? "창고" : "고객"}</p>
-              <p>좌표: ${point.lat}, ${point.lng}</p>
-              ${routeOptions}
-              ${
-                !point.is_warehouse
-                  ? `
-                <div class="popup-actions">
-                  <button class="confirm-btn" style="display: none;">확인</button>
-                  <button class="cancel-btn" style="display: none;">취소</button>
-                </div>
-              `
-                  : ""
-              }
+              <div class="popup-body">
+                <table class="info-table">
+                  <tr class="info-row">
+                    <td class="info-label">위치 ID:</td>
+                    <td class="info-value" title="${point.location_id}">${
+            point.location_id
+          }</td>
+                  </tr>
+                  <tr class="info-row">
+                    <td class="info-label">위치 이름:</td>
+                    <td class="info-value" title="${point.name}">${
+            point.name
+          }</td>
+                  </tr>
+                  <tr class="info-row">
+                    <td class="info-label">유형:</td>
+                    <td class="info-value" title="${
+                      point.is_warehouse ? "창고" : "고객"
+                    }">${point.is_warehouse ? "창고" : "고객"}</td>
+                  </tr>
+                  <tr class="info-row">
+                    <td class="info-label">좌표:</td>
+                    <td class="info-value" title="${point.lat}, ${point.lng}">${
+            point.lat
+          }, ${point.lng}</td>
+                  </tr>
+                </table>
+                ${routeOptions}
+                ${
+                  !point.is_warehouse
+                    ? `
+                  <div class="popup-actions">
+                    <button class="confirm-btn" style="display: none;">확인</button>
+                    <button class="cancel-btn" style="display: none;">취소</button>
+                  </div>
+                `
+                    : ""
+                }
+              </div>
             </div>
           `;
 
@@ -406,7 +435,6 @@ export default {
 
       return `
         <div class="route-change">
-          <p>경로 변경:</p>
           <select class="route-select">
             <option value="" selected disabled>경로 선택</option>
             ${options}
@@ -633,11 +661,26 @@ export default {
       this.map.addLayer(vectorLayer);
       this.markerLayers.push(vectorLayer);
     },
+    getContrastColor(hexcolor) {
+      // Remove the # if present
+      const hex = hexcolor.replace("#", "");
+
+      // Convert to RGB
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+
+      // Calculate luminance
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+      // Return black or white depending on background luminance
+      return luminance > 0.5 ? "#000000" : "#ffffff";
+    },
   },
 };
 </script>
 
-<style scoped>
+<style>
 .map-container {
   width: 100%;
   height: 600px;
@@ -652,156 +695,132 @@ export default {
 .ol-popup {
   position: absolute;
   background-color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  padding: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 0 0 24px 0;
   border-radius: 8px;
-  border: 1px solid #ddd;
-  min-width: 220px;
+  border: none;
+  min-width: 320px;
+  height: 300px;
   user-select: none;
   z-index: 1000;
-  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.2px;
 }
 
 .popup-content {
-  padding: 10px;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .popup-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  cursor: move;
-  background-color: #f5f5f5;
+  height: 40px;
+  padding: 0;
+  border-bottom: 3px solid transparent;
+  background-color: transparent;
   border-radius: 8px 8px 0 0;
-  padding: 8px 12px;
-  margin: 0;
-  border-bottom: 1px solid #ddd;
-  touch-action: none;
+  position: relative;
+  margin-bottom: 16px;
 }
 
-.popup-header:hover {
-  background-color: #eee;
+.header-text {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 48px);
+  text-align: center;
 }
 
-.popup-header h4 {
-  margin: 0;
+.popup-body {
+  padding: 0 24px;
+  background-color: #fcfcfc;
   flex: 1;
-  pointer-events: none;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 2px solid #000000;
+  background-color: #ffffff;
+}
+
+.info-row {
+  line-height: 1.2;
+  border-bottom: 2px solid #000000;
+  min-height: 20px;
+  max-height: 70px;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a4a4a;
+  letter-spacing: 0;
+  vertical-align: top;
+  padding: 6px 12px;
+  border-right: 2px solid #000000;
+  background-color: #fafafa;
+}
+
+.info-value {
   font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 400;
+  padding: 6px 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  min-height: 20px;
 }
 
 .drag-handle {
-  color: #666;
+  color: #999;
   cursor: move;
   user-select: none;
-  padding: 0 5px;
-  pointer-events: none;
-}
-
-.popup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
-}
-
-.popup-actions button {
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.3s ease;
-}
-
-.confirm-btn {
-  background-color: #4caf50;
-  color: white;
-  border-color: #4caf50 !important;
-}
-
-.confirm-btn:hover {
-  background-color: #45a049;
-}
-
-.cancel-btn {
-  background-color: white;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background-color: #f5f5f5;
-}
-
-.ol-popup:after,
-.ol-popup:before {
-  top: 100%;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-}
-
-.ol-popup:after {
-  border-top-color: white;
-  border-width: 10px;
-  left: 48px;
-  margin-left: -10px;
-}
-
-.ol-popup:before {
-  border-top-color: #cccccc;
-  border-width: 11px;
-  left: 48px;
-  margin-left: -11px;
-}
-
-.ol-popup-closer {
-  text-decoration: none;
-  position: absolute;
-  top: 2px;
-  right: 8px;
-}
-
-.ol-popup-closer:after {
-  content: "✖";
-}
-
-.popup-content h4 {
-  margin: 0 0 10px 0;
-  color: #333;
-}
-
-.popup-content p {
-  margin: 3px 0;
-  color: #666;
-  font-size: 12px;
+  font-size: 18px;
+  padding: 4px;
 }
 
 .route-change {
-  margin-top: 15px;
+  margin-top: 8px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 4px;
+  margin: 8px 0 0 0;
 }
 
 .route-change p {
-  margin-bottom: 3px;
-  font-weight: bold;
-  font-size: 12px;
+  margin: 0 0 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a4a4a;
 }
 
 .route-select {
-  width: 100%;
-  padding: 6px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  width: 280px;
+  padding: 12px 6px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1a1a1a;
   background-color: white;
-  font-size: 12px;
   cursor: pointer;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .route-select:hover {
@@ -809,78 +828,106 @@ export default {
 }
 
 .route-select:focus {
-  border-color: #666;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  border-color: #2196f3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
-.route-select option {
-  padding: 8px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: white;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
-  background-color: inherit;
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 20px 4px 0;
 }
 
-.route-select option:first-child {
-  background-color: white !important;
-  color: #666;
-  text-shadow: none;
-}
-
-.route-select option:not(:first-child) {
-  color: white;
-  padding: 10px;
+.popup-actions button {
+  padding: 12px 24px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.route-select option:hover {
-  filter: brightness(90%);
+.confirm-btn {
+  background-color: #2196f3;
+  color: white;
 }
 
-.route-select option:checked {
-  filter: brightness(85%);
+.confirm-btn:hover {
+  background-color: #1976d2;
 }
 
-.route-select:focus option:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #4a4a4a;
+  border: 1px solid #e0e0e0;
 }
 
-/* 브라우저별 스타일 조정 */
-/* Chrome/Safari */
+.cancel-btn:hover {
+  background-color: #eeeeee;
+}
+
+.ol-popup:after,
+.ol-popup:before {
+  display: none;
+}
+
+.ol-popup-closer {
+  text-decoration: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: #666;
+  font-size: 20px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  height: 32px;
+  width: 32px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  margin: 4px;
+}
+
+.ol-popup-closer:hover {
+  opacity: 1;
+  color: #333;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.ol-popup-closer:after {
+  content: "×";
+  font-weight: bold;
+}
+
+/* 스크롤바 스타일 */
 .route-select::-webkit-scrollbar {
   width: 8px;
 }
 
 .route-select::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f5f5f5;
   border-radius: 4px;
 }
 
 .route-select::-webkit-scrollbar-thumb {
-  background: #888;
+  background: #ccc;
   border-radius: 4px;
 }
 
 .route-select::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: #999;
 }
 
 /* Firefox */
 .route-select {
   scrollbar-width: thin;
-  scrollbar-color: #888 #f1f1f1;
-}
-
-/* Edge */
-.route-select option {
-  background-color: var(--option-background-color);
-}
-
-@supports (-ms-ime-align: auto) {
-  .route-select option {
-    background-color: var(--option-background-color) !important;
-  }
+  scrollbar-color: #ccc #f5f5f5;
 }
 </style>
