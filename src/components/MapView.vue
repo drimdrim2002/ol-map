@@ -1,8 +1,8 @@
 <template>
-  <div class="map-container">
+  <div class="map-view-container">
     <div id="map" ref="mapRef"></div>
-    <div id="popup" ref="popupRef" class="ol-popup">
-      <a href="#" ref="popupCloserRef" class="ol-popup-closer"></a>
+    <div id="popup" ref="popupRef" class="map-view-popup">
+      <a href="#" ref="popupCloserRef" class="map-view-popup-closer"></a>
       <div ref="popupContentRef"></div>
     </div>
   </div>
@@ -22,6 +22,7 @@ import { LineString, Point } from "ol/geom";
 import { Style, Stroke, Circle, Fill, Text } from "ol/style";
 import Overlay from "ol/Overlay";
 import { getRouteColor, adjustBrightness } from "../utils/colors";
+import "./MapView.css"; // Import the separate CSS file
 
 export default {
   name: "MapView",
@@ -228,46 +229,46 @@ export default {
             currentRoute.color || getRouteColor(parseInt(currentRoute.id) - 1);
 
           let content = `
-            <div class="popup-content">
-              <div class="popup-header" style="border-bottom: 3px solid ${headerColor}; background-color: ${headerColor}20;">
-                <span class="header-text" style="color: ${headerColor};">${
+            <div class="map-view-popup-content">
+              <div class="map-view-popup-header" style="border-bottom: 3px solid ${headerColor}; background-color: ${headerColor}20;">
+                <span class="map-view-header-text" style="color: ${headerColor};">${
             currentRoute.vehicle_id
           }</span>
               </div>
-              <div class="popup-body">
-                <table class="info-table">
-                  <tr class="info-row">
-                    <td class="info-label">위치 ID:</td>
-                    <td class="info-value" title="${point.location_id}">${
-            point.location_id
-          }</td>
+              <div class="map-view-popup-body">
+                <table class="map-view-info-table">
+                  <tr class="map-view-info-row">
+                    <td class="map-view-info-label">위치 ID:</td>
+                    <td class="map-view-info-value" title="${
+                      point.location_id
+                    }">${point.location_id}</td>
                   </tr>
-                  <tr class="info-row">
-                    <td class="info-label">위치 이름:</td>
-                    <td class="info-value" title="${point.name}">${
+                  <tr class="map-view-info-row">
+                    <td class="map-view-info-label">위치 이름:</td>
+                    <td class="map-view-info-value" title="${point.name}">${
             point.name
           }</td>
                   </tr>
-                  <tr class="info-row">
-                    <td class="info-label">유형:</td>
-                    <td class="info-value" title="${
+                  <tr class="map-view-info-row">
+                    <td class="map-view-info-label">유형:</td>
+                    <td class="map-view-info-value" title="${
                       point.is_warehouse ? "창고" : "고객"
                     }">${point.is_warehouse ? "창고" : "고객"}</td>
                   </tr>
-                  <tr class="info-row">
-                    <td class="info-label">좌표:</td>
-                    <td class="info-value" title="${point.lat}, ${point.lng}">${
-            point.lat
-          }, ${point.lng}</td>
+                  <tr class="map-view-info-row">
+                    <td class="map-view-info-label">좌표:</td>
+                    <td class="map-view-info-value" title="${point.lat}, ${
+            point.lng
+          }">${point.lat}, ${point.lng}</td>
                   </tr>
                 </table>
                 ${routeOptions}
                 ${
                   !point.is_warehouse
                     ? `
-                  <div class="popup-actions">
-                    <button class="confirm-btn" style="display: none;">확인</button>
-                    <button class="cancel-btn" style="display: none;">취소</button>
+                  <div class="map-view-popup-actions">
+                    <button class="map-view-confirm-btn" style="display: none;">확인</button>
+                    <button class="map-view-cancel-btn" style="display: none;">취소</button>
                   </div>
                 `
                     : ""
@@ -280,10 +281,15 @@ export default {
           this.popup.setPosition(coordinates);
 
           if (!point.is_warehouse) {
-            const routeSelect =
-              this.popupContent.querySelector(".route-select");
-            const confirmBtn = this.popupContent.querySelector(".confirm-btn");
-            const cancelBtn = this.popupContent.querySelector(".cancel-btn");
+            const routeSelect = this.popupContent.querySelector(
+              ".map-view-route-select"
+            );
+            const confirmBtn = this.popupContent.querySelector(
+              ".map-view-confirm-btn"
+            );
+            const cancelBtn = this.popupContent.querySelector(
+              ".map-view-cancel-btn"
+            );
             let selectedRouteId = null;
 
             routeSelect.addEventListener("change", (e) => {
@@ -367,7 +373,7 @@ export default {
       let startPosition = null;
 
       const onMouseDown = (e) => {
-        if (e.target.closest(".popup-header")) {
+        if (e.target.closest(".map-view-popup-header")) {
           isDragging = true;
           this.$refs.popupRef.style.position = "absolute";
           startPosition = {
@@ -434,8 +440,8 @@ export default {
         .join("");
 
       return `
-        <div class="route-change">
-          <select class="route-select">
+        <div class="map-view-route-change">
+          <select class="map-view-route-select">
             <option value="" selected disabled>경로 선택</option>
             ${options}
           </select>
@@ -681,7 +687,7 @@ export default {
 </script>
 
 <style>
-.map-container {
+.map-view-container {
   width: 100%;
   height: 600px;
   position: relative;
@@ -692,7 +698,7 @@ export default {
   height: 100%;
 }
 
-.ol-popup {
+.map-view-popup {
   position: absolute;
   background-color: white;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -708,14 +714,14 @@ export default {
   letter-spacing: -0.2px;
 }
 
-.popup-content {
+.map-view-popup-content {
   padding: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.popup-header {
+.map-view-popup-header {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -728,7 +734,7 @@ export default {
   margin-bottom: 16px;
 }
 
-.header-text {
+.map-view-header-text {
   font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
@@ -738,7 +744,7 @@ export default {
   text-align: center;
 }
 
-.popup-body {
+.map-view-popup-body {
   padding: 0 24px;
   background-color: #fcfcfc;
   flex: 1;
@@ -746,25 +752,25 @@ export default {
   border-radius: 8px;
 }
 
-.info-table {
+.map-view-info-table {
   width: 100%;
   border-collapse: collapse;
   border: 2px solid #000000;
   background-color: #ffffff;
 }
 
-.info-row {
+.map-view-info-row {
   line-height: 1.2;
   border-bottom: 2px solid #000000;
   min-height: 20px;
   max-height: 70px;
 }
 
-.info-row:last-child {
+.map-view-info-row:last-child {
   border-bottom: none;
 }
 
-.info-label {
+.map-view-info-label {
   font-size: 13px;
   font-weight: 600;
   color: #4a4a4a;
@@ -773,9 +779,10 @@ export default {
   padding: 6px 12px;
   border-right: 2px solid #000000;
   background-color: #fafafa;
+  width: 150px;
 }
 
-.info-value {
+.map-view-info-value {
   font-size: 14px;
   color: #1a1a1a;
   font-weight: 400;
@@ -787,15 +794,7 @@ export default {
   min-height: 20px;
 }
 
-.drag-handle {
-  color: #999;
-  cursor: move;
-  user-select: none;
-  font-size: 18px;
-  padding: 4px;
-}
-
-.route-change {
+.map-view-route-change {
   margin-top: 8px;
   background-color: #ffffff;
   border-radius: 8px;
@@ -803,14 +802,7 @@ export default {
   margin: 8px 0 0 0;
 }
 
-.route-change p {
-  margin: 0 0 0 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #4a4a4a;
-}
-
-.route-select {
+.map-view-route-select {
   width: 280px;
   padding: 12px 6px;
   border: 1px solid #e0e0e0;
@@ -823,16 +815,16 @@ export default {
   transition: all 0.2s ease;
 }
 
-.route-select:hover {
+.map-view-route-select:hover {
   border-color: #999;
 }
 
-.route-select:focus {
+.map-view-route-select:focus {
   border-color: #2196f3;
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
-.popup-actions {
+.map-view-popup-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -840,7 +832,7 @@ export default {
   padding: 20px 4px 0;
 }
 
-.popup-actions button {
+.map-view-popup-actions button {
   padding: 12px 24px;
   border-radius: 6px;
   border: none;
@@ -850,34 +842,30 @@ export default {
   transition: all 0.2s ease;
 }
 
-.confirm-btn {
+.map-view-confirm-btn {
   background-color: #2196f3;
   color: white;
 }
 
-.confirm-btn:hover {
+.map-view-confirm-btn:hover {
   background-color: #1976d2;
 }
 
-.cancel-btn {
+.map-view-cancel-btn {
   background-color: #f5f5f5;
   color: #4a4a4a;
   border: 1px solid #e0e0e0;
 }
 
-.cancel-btn:hover {
+.map-view-cancel-btn:hover {
   background-color: #eeeeee;
 }
 
-.ol-popup:after,
-.ol-popup:before {
-  display: none;
-}
-
-.ol-popup-closer {
+.map-view-popup-closer {
   text-decoration: none;
   position: absolute;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   right: 0;
   color: #666;
   font-size: 20px;
@@ -895,39 +883,45 @@ export default {
   margin: 4px;
 }
 
-.ol-popup-closer:hover {
+.map-view-popup-closer:hover {
   opacity: 1;
   color: #333;
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-.ol-popup-closer:after {
+.map-view-popup-closer:after {
   content: "×";
   font-weight: bold;
 }
 
 /* 스크롤바 스타일 */
-.route-select::-webkit-scrollbar {
+.map-view-route-select::-webkit-scrollbar {
   width: 8px;
 }
 
-.route-select::-webkit-scrollbar-track {
+.map-view-route-select::-webkit-scrollbar-track {
   background: #f5f5f5;
   border-radius: 4px;
 }
 
-.route-select::-webkit-scrollbar-thumb {
+.map-view-route-select::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 4px;
 }
 
-.route-select::-webkit-scrollbar-thumb:hover {
+.map-view-route-select::-webkit-scrollbar-thumb:hover {
   background: #999;
 }
 
 /* Firefox */
-.route-select {
+.map-view-route-select {
   scrollbar-width: thin;
   scrollbar-color: #ccc #f5f5f5;
+}
+
+/* OpenLayers specific overrides that need to be global */
+.ol-popup:after,
+.ol-popup:before {
+  display: none;
 }
 </style>
