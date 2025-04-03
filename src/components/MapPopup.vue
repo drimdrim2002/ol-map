@@ -278,23 +278,25 @@ export default {
 .map-view-popup-closer {
   text-decoration: none;
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: 0;
+  top: 0px;
+  right: 8px;
   color: #666;
-  font-size: 20px;
+  font-size: 24px;
   opacity: 0.7;
   transition: opacity 0.2s ease;
-  height: 32px;
-  width: 32px;
-  line-height: 24px;
+  height: 40px;
+  width: 40px;
+  line-height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1;
   cursor: pointer;
   border-radius: 50%;
-  margin: 4px;
+  margin: 0;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .map-view-popup-closer:hover {
@@ -306,6 +308,7 @@ export default {
 .map-view-popup-closer:after {
   content: "×";
   font-weight: bold;
+  font-size: 28px;
 }
 
 /* 스크롤바 스타일 */
