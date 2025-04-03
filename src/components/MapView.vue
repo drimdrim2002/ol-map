@@ -1,7 +1,18 @@
 <template>
   <div class="map-view-container">
     <div id="map" ref="mapRef"></div>
-    <map-popup ref="mapPopup" :map="map" @close="handlePopupClose" />
+    <map-popup
+      ref="mapPopup"
+      :map="map"
+      :point="selectedPoint"
+      :header-color="headerColor"
+      :available-routes="availableRoutes"
+      :current-route="selectedPoint?.route"
+      @close="handlePopupClose"
+      @route-hover="highlightRoute"
+      @route-hover-out="removeHighlight"
+      @route-change="handleRouteChange"
+    />
   </div>
 </template>
 
@@ -38,7 +49,23 @@ export default {
       routeLayers: [],
       markerLayers: [],
       markerScale: 1,
+      selectedPoint: null,
     };
+  },
+  computed: {
+    headerColor() {
+      if (!this.selectedPoint?.route) return "#2196f3";
+      return (
+        this.selectedPoint.route.color ||
+        getRouteColor(parseInt(this.selectedPoint.route.id) - 1)
+      );
+    },
+    availableRoutes() {
+      if (!this.selectedPoint?.route) return [];
+      return this.routes.filter(
+        (route) => route.id !== this.selectedPoint.route.id
+      );
+    },
   },
   mounted() {
     this.initMap();
@@ -216,128 +243,15 @@ export default {
           const currentRoute = feature.get("route");
           const coordinates = feature.getGeometry().getCoordinates();
 
-          const routeOptions = point.is_warehouse
-            ? ""
-            : this.getRouteOptionsHtml(currentRoute);
-
-          const headerColor =
-            currentRoute.color || getRouteColor(parseInt(currentRoute.id) - 1);
-
-          let content = `
-            <div class="map-view-popup-content">
-              <div class="map-view-popup-header" style="border-bottom: 3px solid ${headerColor}; background-color: ${headerColor}20;">
-                <span class="map-view-header-text" style="color: ${headerColor};">${
-            currentRoute.vehicle_id
-          }</span>
-              </div>
-              <div class="map-view-popup-body">
-                <table class="map-view-info-table">
-                  <tr class="map-view-info-row">
-                    <td class="map-view-info-label">위치 ID:</td>
-                    <td class="map-view-info-value" title="${
-                      point.location_id
-                    }">${point.location_id}</td>
-                  </tr>
-                  <tr class="map-view-info-row">
-                    <td class="map-view-info-label">위치 이름:</td>
-                    <td class="map-view-info-value" title="${point.name}">${
-            point.name
-          }</td>
-                  </tr>
-                  <tr class="map-view-info-row">
-                    <td class="map-view-info-label">유형:</td>
-                    <td class="map-view-info-value" title="${
-                      point.is_warehouse ? "창고" : "고객"
-                    }">${point.is_warehouse ? "창고" : "고객"}</td>
-                  </tr>
-                  <tr class="map-view-info-row">
-                    <td class="map-view-info-label">좌표:</td>
-                    <td class="map-view-info-value" title="${point.lat}, ${
-            point.lng
-          }">${point.lat}, ${point.lng}</td>
-                  </tr>
-                </table>
-                ${routeOptions}
-                ${
-                  !point.is_warehouse
-                    ? `
-                  <div class="map-view-popup-actions">
-                    <button class="map-view-confirm-btn" style="display: none;">확인</button>
-                    <button class="map-view-cancel-btn" style="display: none;">취소</button>
-                  </div>
-                `
-                    : ""
-                }
-              </div>
-            </div>
-          `;
-
-          this.$refs.mapPopup.setContent(content);
+          this.selectedPoint = {
+            ...point,
+            route: currentRoute,
+          };
           this.$refs.mapPopup.setPosition(coordinates);
-
-          if (!point.is_warehouse) {
-            const routeSelect =
-              this.$refs.mapPopup.$refs.popupContentRef.querySelector(
-                ".map-view-route-select"
-              );
-            const confirmBtn =
-              this.$refs.mapPopup.$refs.popupContentRef.querySelector(
-                ".map-view-confirm-btn"
-              );
-            const cancelBtn =
-              this.$refs.mapPopup.$refs.popupContentRef.querySelector(
-                ".map-view-cancel-btn"
-              );
-            let selectedRouteId = null;
-
-            routeSelect.addEventListener("change", (e) => {
-              selectedRouteId = e.target.value;
-              if (selectedRouteId && selectedRouteId !== currentRoute.id) {
-                this.highlightRoute(selectedRouteId);
-                confirmBtn.style.display = "inline-block";
-                cancelBtn.style.display = "inline-block";
-              }
-            });
-
-            confirmBtn.addEventListener("click", () => {
-              if (selectedRouteId && selectedRouteId !== currentRoute.id) {
-                this.changePointRoute(point, currentRoute, selectedRouteId);
-                this.$refs.mapPopup.setPosition(undefined);
-                this.removeHighlight();
-              }
-            });
-
-            cancelBtn.addEventListener("click", () => {
-              routeSelect.value = "";
-              this.removeHighlight();
-              confirmBtn.style.display = "none";
-              cancelBtn.style.display = "none";
-            });
-
-            routeSelect.addEventListener("mouseover", (e) => {
-              const option = e.target;
-              if (
-                option.tagName === "OPTION" &&
-                option.value &&
-                option.value !== ""
-              ) {
-                this.highlightRoute(option.value);
-              }
-            });
-
-            routeSelect.addEventListener("mouseout", (e) => {
-              const option = e.target;
-              if (
-                option.tagName === "OPTION" &&
-                (!selectedRouteId || option.value !== selectedRouteId)
-              ) {
-                this.removeHighlight();
-              }
-            });
-          }
         } else {
           this.$refs.mapPopup.setPosition(undefined);
           this.removeHighlight();
+          this.selectedPoint = null;
         }
       });
 
@@ -366,6 +280,7 @@ export default {
 
       features.forEach((feature) => this.stopMarkerAnimation(feature));
       this.removeHighlight();
+      this.selectedPoint = null;
     },
 
     getRouteOptionsHtml(currentRoute) {
@@ -440,7 +355,7 @@ export default {
       });
     },
 
-    changePointRoute(point, oldRoute, newRouteId) {
+    handleRouteChange({ point, oldRoute, newRouteId }) {
       const oldRouteIndex = this.routes.findIndex((r) => r.id === oldRoute.id);
       if (oldRouteIndex !== -1) {
         const pointIndex = this.routes[oldRouteIndex].path.findIndex(
