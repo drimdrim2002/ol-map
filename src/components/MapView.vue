@@ -7,7 +7,7 @@
       :point="selectedPoint"
       :header-color="headerColor"
       :available-routes="availableRoutes"
-      :current-route="selectedPoint?.route"
+      :current-route="selectedPoint && selectedPoint.route"
       @close="handlePopupClose"
       @route-hover="highlightRoute"
       @route-hover-out="removeHighlight"
@@ -54,14 +54,14 @@ export default {
   },
   computed: {
     headerColor() {
-      if (!this.selectedPoint?.route) return "#2196f3";
+      if (!this.selectedPoint || !this.selectedPoint.route) return "#2196f3";
       return (
         this.selectedPoint.route.color ||
         getRouteColor(parseInt(this.selectedPoint.route.id) - 1)
       );
     },
     availableRoutes() {
-      if (!this.selectedPoint?.route) return [];
+      if (!this.selectedPoint || !this.selectedPoint.route) return [];
       return this.routes.filter(
         (route) => route.id !== this.selectedPoint.route.id
       );

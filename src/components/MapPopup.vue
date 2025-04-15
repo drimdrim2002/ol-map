@@ -2,44 +2,12 @@
   <div id="popup" ref="popupRef" class="map-view-popup">
     <div class="map-view-popup-header" :style="headerStyle">
       <span class="map-view-header-text" :style="{ color: headerColor }">{{
-        point?.vehicle_id || "위치 정보"
+        (point && point.vehicle_id) || "위치 정보"
       }}</span>
       <button class="map-view-popup-closer" @click="closePopup"></button>
     </div>
     <div class="map-view-popup-content">
-      <table class="map-view-info-table">
-        <tr class="map-view-info-row">
-          <td class="map-view-info-label">위치 ID:</td>
-          <td class="map-view-info-value" :title="point?.location_id">
-            {{ point?.location_id }}
-          </td>
-        </tr>
-        <tr class="map-view-info-row">
-          <td class="map-view-info-label">위치 이름:</td>
-          <td class="map-view-info-value" :title="point?.name">
-            {{ point?.name }}
-          </td>
-        </tr>
-        <tr class="map-view-info-row">
-          <td class="map-view-info-label">유형:</td>
-          <td
-            class="map-view-info-value"
-            :title="point?.is_warehouse ? '창고' : '고객'"
-          >
-            {{ point?.is_warehouse ? "창고" : "고객" }}
-          </td>
-        </tr>
-        <tr class="map-view-info-row">
-          <td class="map-view-info-label">좌표:</td>
-          <td
-            class="map-view-info-value"
-            :title="`${point?.lat}, ${point?.lng}`"
-          >
-            {{ point?.lat }}, {{ point?.lng }}
-          </td>
-        </tr>
-      </table>
-      <div v-if="!point?.is_warehouse" class="map-view-route-change">
+      <div v-if="point && !point.is_warehouse" class="map-view-route-change">
         <select
           class="map-view-route-select"
           @change="handleRouteChange"
@@ -57,7 +25,41 @@
           </option>
         </select>
       </div>
-      <div v-if="!point?.is_warehouse" class="map-view-popup-actions">
+
+      <table class="map-view-info-table">
+        <tr class="map-view-info-row">
+          <td class="map-view-info-label">위치 ID:</td>
+          <td class="map-view-info-value" :title="point && point.location_id">
+            {{ point && point.location_id }}
+          </td>
+        </tr>
+        <tr class="map-view-info-row">
+          <td class="map-view-info-label">위치 이름:</td>
+          <td class="map-view-info-value" :title="point && point.name">
+            {{ point && point.name }}
+          </td>
+        </tr>
+        <tr class="map-view-info-row">
+          <td class="map-view-info-label">유형:</td>
+          <td
+            class="map-view-info-value"
+            :title="point && point.is_warehouse ? '창고' : '고객'"
+          >
+            {{ point && point.is_warehouse ? "창고" : "고객" }}
+          </td>
+        </tr>
+        <tr class="map-view-info-row">
+          <td class="map-view-info-label">좌표:</td>
+          <td
+            class="map-view-info-value"
+            :title="point && `${point.lat}, ${point.lng}`"
+          >
+            {{ point && point.lat }}, {{ point && point.lng }}
+          </td>
+        </tr>
+      </table>
+
+      <div v-if="point && !point.is_warehouse" class="map-view-popup-actions">
         <button
           class="map-view-confirm-btn"
           :style="{ display: showActions ? 'inline-block' : 'none' }"
@@ -201,7 +203,8 @@ export default {
       this.selectedRouteId = e.target.value;
       if (
         this.selectedRouteId &&
-        this.selectedRouteId !== this.currentRoute?.id
+        this.currentRoute &&
+        this.selectedRouteId !== this.currentRoute.id
       ) {
         this.$emit("route-hover", this.selectedRouteId);
         this.showActions = true;
@@ -225,7 +228,8 @@ export default {
     handleConfirm() {
       if (
         this.selectedRouteId &&
-        this.selectedRouteId !== this.currentRoute?.id
+        this.currentRoute &&
+        this.selectedRouteId !== this.currentRoute.id
       ) {
         this.$emit("route-change", {
           point: this.point,
