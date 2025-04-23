@@ -7,25 +7,6 @@
       <button class="map-view-popup-closer" @click="closePopup"></button>
     </div>
     <div class="map-view-popup-content">
-      <div v-if="point && !point.is_warehouse" class="map-view-route-change">
-        <select
-          class="map-view-route-select"
-          @change="handleRouteChange"
-          @mouseover="handleRouteHover"
-          @mouseout="handleRouteOut"
-        >
-          <option value="" selected disabled>경로 선택</option>
-          <option
-            v-for="route in availableRoutes"
-            :key="route.id"
-            :value="route.id"
-            :style="{ backgroundColor: route.color }"
-          >
-            {{ route.vehicle_id }} ({{ route.vehicle_type }})
-          </option>
-        </select>
-      </div>
-
       <table class="map-view-info-table">
         <tr class="map-view-info-row">
           <td class="map-view-info-label">위치 ID:</td>
@@ -58,23 +39,6 @@
           </td>
         </tr>
       </table>
-
-      <div v-if="point && !point.is_warehouse" class="map-view-popup-actions">
-        <button
-          class="map-view-confirm-btn"
-          :style="{ display: showActions ? 'inline-block' : 'none' }"
-          @click="handleConfirm"
-        >
-          확인
-        </button>
-        <button
-          class="map-view-cancel-btn"
-          :style="{ display: showActions ? 'inline-block' : 'none' }"
-          @click="handleCancel"
-        >
-          취소
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -114,8 +78,6 @@ export default {
   data() {
     return {
       popup: null,
-      selectedRouteId: null,
-      showActions: false,
     };
   },
   computed: {
@@ -198,51 +160,6 @@ export default {
       if (this.popup) {
         this.popup.setPosition(coordinates);
       }
-    },
-    handleRouteChange(e) {
-      this.selectedRouteId = e.target.value;
-      if (
-        this.selectedRouteId &&
-        this.currentRoute &&
-        this.selectedRouteId !== this.currentRoute.id
-      ) {
-        this.$emit("route-hover", this.selectedRouteId);
-        this.showActions = true;
-      }
-    },
-    handleRouteHover(e) {
-      const option = e.target;
-      if (option.tagName === "OPTION" && option.value && option.value !== "") {
-        this.$emit("route-hover", option.value);
-      }
-    },
-    handleRouteOut(e) {
-      const option = e.target;
-      if (
-        option.tagName === "OPTION" &&
-        (!this.selectedRouteId || option.value !== this.selectedRouteId)
-      ) {
-        this.$emit("route-hover-out");
-      }
-    },
-    handleConfirm() {
-      if (
-        this.selectedRouteId &&
-        this.currentRoute &&
-        this.selectedRouteId !== this.currentRoute.id
-      ) {
-        this.$emit("route-change", {
-          point: this.point,
-          oldRoute: this.currentRoute,
-          newRouteId: this.selectedRouteId,
-        });
-        this.closePopup();
-      }
-    },
-    handleCancel() {
-      this.selectedRouteId = null;
-      this.showActions = false;
-      this.$emit("route-hover-out");
     },
   },
 };
@@ -371,73 +288,6 @@ export default {
   text-overflow: ellipsis;
   max-width: 200px;
   min-height: 20px;
-}
-
-.map-view-route-change {
-  margin-top: 16px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  padding: 8px;
-  border: 1px solid #dee2e6;
-}
-
-.map-view-route-select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #212529;
-  background-color: white;
-  cursor: pointer;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.map-view-route-select:hover {
-  border-color: #adb5bd;
-}
-
-.map-view-route-select:focus {
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.map-view-popup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 8px 0 0;
-}
-
-.map-view-popup-actions button {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.map-view-confirm-btn {
-  background-color: #0d6efd;
-  color: white;
-  border: none;
-}
-
-.map-view-confirm-btn:hover {
-  background-color: #0b5ed7;
-}
-
-.map-view-cancel-btn {
-  background-color: #f8f9fa;
-  color: #212529;
-  border: 1px solid #dee2e6;
-}
-
-.map-view-cancel-btn:hover {
-  background-color: #e9ecef;
 }
 
 /* 스크롤바 스타일 */
