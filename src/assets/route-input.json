@@ -18,9 +18,18 @@
           "is_warehouse": false,
           "lat": 37.5747,
           "lng": 127.0158,
-          "order_id": 1,
-          "wt": 45,
-          "vol": 32
+          "orderList" : [{
+            "order_id": 1,
+            "wt": 45,
+            "vol": 32
+          }],
+          "routeDetailObject": {
+            "1" : {
+              "arrDtm" : "2025-04-23 10:00:00" ,
+              "depDtm" : "2025-04-23 10:40:00" ,
+              "vhclId" : "차량_01"
+            }
+           }
         },
         {
           "location_id": "L2",
@@ -28,9 +37,27 @@
           "is_warehouse": false,
           "lat": 37.5657,
           "lng": 127.0147,
-          "order_id": 2,
-          "wt": 78,
-          "vol": 56
+          "orderList" : [{
+            "order_id": 2,
+            "wt": 78,
+            "vol": 56
+          }, {
+            "order_id": 3,
+            "wt": 90,
+            "vol": 67
+          }],
+          "routeDetailObject": {
+            "2" : {
+              "arrDtm" : "2025-04-23 11:00:00" ,
+              "depDtm" : "2025-04-23 11:40:00" ,
+              "vhclId" : "차량_01"
+            },
+            "3" : {
+              "arrDtm" : "2025-04-23 11:50:00" ,
+              "depDtm" : "2025-04-23 12:20:00" ,
+              "vhclId" : "차량_01"
+            }
+           }
         }
       ]
     },
@@ -52,9 +79,19 @@
           "is_warehouse": false,
           "lat": 37.5223,
           "lng": 126.9738,
-          "order_id": 3,
-          "wt": 23,
-          "vol": 67
+         
+          "orderList" : [{
+            "order_id": 4,
+            "wt": 12,
+            "vol": 34
+          }],
+          "routeDetailObject": {
+            "4" : {
+              "arrDtm" : "2025-04-23 10:00:00" ,
+              "depDtm" : "2025-04-23 10:30:00" ,
+              "vhclId" : "차량_02"
+            }
+          }
         },
         {
           "location_id": "L4",
@@ -64,7 +101,30 @@
           "lng": 126.9339,
           "order_id": 4,
           "wt": 89,
-          "vol": 41
+          "vol": 41,
+          "orderList" : [{
+            "order_id": 5,
+            "wt": 34,
+            "vol": 78
+          },
+          {
+            "order_id": 6,
+            "wt": 67,
+            "vol": 45
+          }
+        ],
+          "routeDetailObject": {
+            "5" : {
+              "arrDtm" : "2025-04-23 11:00:00" ,
+              "depDtm" : "2025-04-23 11:30:00" ,
+              "vhclId" : "차량_02"
+            },
+            "6" : {
+              "arrDtm" : "2025-04-23 11:40:00" ,
+              "depDtm" : "2025-04-23 12:00:00" ,
+              "vhclId" : "차량_02"
+            }
+          }
         }
       ]
     },
@@ -86,9 +146,19 @@
           "is_warehouse": false,
           "lat": 37.5445,
           "lng": 127.0444,
-          "order_id": 5,
-          "wt": 34,
-          "vol": 78
+       
+          "orderList" : [{
+            "order_id": 7,
+            "wt": 56,
+            "vol": 89
+          }],
+          "routeDetailObject": {
+            "7" : {
+              "arrDtm" : "2025-04-23 10:00:00" ,
+              "depDtm" : "2025-04-23 10:30:00" ,
+              "vhclId" : "차량_03"
+            }
+          }
         },
         {
           "location_id": "L0005",
@@ -96,21 +166,21 @@
           "is_warehouse": false,
           "lat": 37.5445,
           "lng": 127.0444,
-          "order_id": 6,
-          "wt": 67,
-          "vol": 45
-        },
-        {
-          "location_id": "L0005",
-          "name": "성동구 성수1가 주민센터",
-          "is_warehouse": false,
-          "lat": 37.5445,
-          "lng": 127.0444,
-          "order_id": 7,
-          "wt": 56,
-          "vol": 89
+          "orderList" : [{  
+            "order_id": 8,
+            "wt": 67,
+            "vol": 45
+          }],
+          "routeDetailObject": {
+            "8" : {
+              "arrDtm" : "2025-04-23 10:00:00" ,
+              "depDtm" : "2025-04-23 10:30:00" ,
+              "vhclId" : "차량_03"
+            }
+          }
         }
       ]
     }
   ]
 }
+       

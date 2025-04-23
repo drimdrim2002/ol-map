@@ -503,7 +503,19 @@ export default {
       feature.setStyle(this.createMarkerStyle(point, route, index));
     },
     createMarkerLayer(route) {
-      const features = route.path.map((point, index) => {
+      // location_id를 기준으로 중복 제거
+      const uniqueLocations = [];
+      const locationMap = {}; // Map 객체 대신 일반 객체 사용
+
+      route.path.forEach((point, index) => {
+        if (!locationMap[point.location_id]) {
+          // has 대신 객체 속성 확인
+          locationMap[point.location_id] = { point, index };
+          uniqueLocations.push({ point, index });
+        }
+      });
+
+      const features = uniqueLocations.map(({ point, index }) => {
         const feature = new Feature({
           geometry: new Point(fromLonLat([point.lng, point.lat])),
           point: point,
